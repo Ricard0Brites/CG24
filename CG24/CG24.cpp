@@ -3,9 +3,17 @@
 #include <SDL.h>
 #include <glew.h>
 #include <gl\GL.h>
+#include <glm.hpp>
+#include <ext.hpp>
+
+typedef glm::mat4 mat4;
+typedef glm::vec3 vec3;
 
 #pragma region Window Setup
-#define WINDOW_RESOLUTION 500, 500
+#define WINDOW_RESOLUTION WINDOW_RESOLUTION_X, WINDOW_RESOLUTION_Y
+#define WINDOW_RESOLUTION_X 500
+#define WINDOW_RESOLUTION_Y 500
+
 #define WINDOW_TITLE "Computer Graphics Ricardo Brites 24"
 #define WINDOW_FLAGS SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_INPUT_FOCUS
 
@@ -13,32 +21,49 @@ SDL_Window* Window = nullptr;
 SDL_GLContext WindowContext= nullptr;
 #pragma endregion
 
+#pragma region Camera Setup
+#define CAMERA_LOCATION_X 0.f
+#define CAMERA_LOCATION_Y 0.f
+#define CAMERA_LOCATION_Z -5.f
+#pragma endregion
+
+
 float vertices[] = 
 { 
-	-0.5f, -.5f,0.f,
-	.5f, -.5f, 0.f,
-	0.f, .5f, 0.f 
+	-0.5f,	 -.5f,	 0.f,
+	.5f,	 -.5f,	 0.f,
+	0.f,	 .5f,	 0.f 
 };
 
 
 #pragma region Vertex Shader
 const char* VertexShaderCode =
-"#version 330 core\n"
-"in vec3 position;"
-"void main()"
-"{"
-	"gl_Position = vec4(position.x, position.y, position.z, 1.0);"
-"}";
+R"(
+	#version 330 core
+	
+	in vec3 position;
+
+	uniform mat4 ModelMatrix;
+	uniform mat4 ViewMatrix;
+	uniform mat4 ProjectionMatrix;
+
+	void main()
+	{
+		gl_Position = ProjectionMatrix * ViewMatrix * ModelMatrix * vec4(position, 1);
+	}
+)";
 #pragma endregion
 
 #pragma region Fragment Shader
 const char* FragmentShaderCode = 
-"#version 330 core\n"
-"out vec4 color;"
-"void main()"
-"{"
-"	color = vec4(1, 1, 1, 1);"
-"}";
+R"(
+	#version 330 core
+	out vec4 color;
+	void main()
+	{
+		color = vec4(1, 1, 1, 1);
+	}
+)";
 #pragma endregion
 
 
@@ -117,6 +142,17 @@ int main(int argc, char* argv[])
 
 #pragma endregion
 	
+	#pragma region Transformations
+	float WindowAspectRatio = WINDOW_RESOLUTION_X / WINDOW_RESOLUTION_Y;
+	mat4 PMatrix = glm::perspective(glm::radians(50.f), WindowAspectRatio, 0.1f, 100.f);
+
+	mat4 VMatrix = mat4(1.f);
+	//Translate the camera (quote unquote)
+	VMatrix = glm::translate(VMatrix, vec3(CAMERA_LOCATION_X, CAMERA_LOCATION_Y, CAMERA_LOCATION_Z));
+
+	mat4 MMatrix = mat4(1.f);
+	#pragma endregion
+
 	bool IsRunning = true;
 	while(IsRunning)
 	{
@@ -135,14 +171,43 @@ int main(int argc, char* argv[])
 			}
 #pragma endregion
 		}
-		#pragma region Render
+		#pragma region Clear Screen
 		//Clear Screen
 		glClearColor(0.f, 0.f, 0.f, 1);
-		glClear(GL_RGB);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		#pragma endregion
 
-
-		glBindVertexArray(VAO);
 		glUseProgram(Shader);
+
+		#pragma region Apply Transformations
+
+		float ModelRotation = 0.f;
+		vec3 ModelRotationAxis = vec3(0.f, 1.f, 0.f);
+
+		//Rotate The Model
+		if (ModelRotation > 360)
+			ModelRotation -= 360;
+		ModelRotation += 0.5f;
+		MMatrix = glm::rotate(MMatrix, glm::radians(ModelRotation), ModelRotationAxis);
+
+		//-----------------------------------------------------------------------------------------------------------------
+		//-------									Communicate to the shader										-------
+		//-----------------------------------------------------------------------------------------------------------------
+		
+		//Get Vertex Shader var locations
+		unsigned int ProjectionMatrix, ViewMatrix, ModelMatrix;
+		ProjectionMatrix = glGetUniformLocation(Shader, "ProjectionMatrix");
+		ViewMatrix = glGetUniformLocation(Shader, "ViewMatrix");
+		ModelMatrix = glGetUniformLocation(Shader, "ModelMatrix");
+
+		// Send info to Vertex shader
+		glUniformMatrix4fv(ProjectionMatrix, 1, GL_FALSE, glm::value_ptr(PMatrix));
+		glUniformMatrix4fv(ViewMatrix, 1, GL_FALSE, glm::value_ptr(VMatrix));
+		glUniformMatrix4fv(ModelMatrix, 1, GL_FALSE, glm::value_ptr(MMatrix));
+	#pragma endregion
+
+		#pragma region Render
+		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 
 		SDL_GL_SwapWindow(Window);
