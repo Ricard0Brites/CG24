@@ -11,8 +11,8 @@ typedef glm::vec3 vec3;
 
 #pragma region Window Setup
 #define WINDOW_RESOLUTION WINDOW_RESOLUTION_X, WINDOW_RESOLUTION_Y
-#define WINDOW_RESOLUTION_X 500
-#define WINDOW_RESOLUTION_Y 500
+#define WINDOW_RESOLUTION_X 1280
+#define WINDOW_RESOLUTION_Y 720
 
 #define WINDOW_TITLE "Computer Graphics Ricardo Brites 24"
 #define WINDOW_FLAGS SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_INPUT_FOCUS
@@ -30,22 +30,14 @@ SDL_GLContext WindowContext= nullptr;
 
 float vertices[] = 
 { 
-	// Vertices						Color
-	-0.8f,	 0.f,	 -0.5f,			1.f, 0.f, 0.f,
-	0.f,	 0.f,	 1.f,			1.f, 0.f, 0.f,
-	0.8f,	 0.f,	 -.5f,			1.f, 0.f, 0.f,
+	// Vertices		Color		Normal
+	-3, 0, -3,		1, 0, 0,	0,1,0,
+	-3, 0, 3,		1, 0, 0,	0, 1, 0,
+	3, 0, -3,		1, 0, 0,	0, 1, 0,
 
-	0.f,	 0.f,	 1.f,			1.f, 1.f, 0.f,
-	0.8f,	 0.f,	 -0.5f,			1.f, 1.f, 0.f,
-	0.f,	 1.5f,	 0.f,			1.f, 1.f, 0.f,
-
-	0.8f,	 0.f,	 -0.5f,			1.f, 0.5f, 0.f,
-	-0.8f,	 0.f,	 -0.5f,			1.f, 0.5f, 0.f,
-	0.f,	 1.5f,	 0.f,			1.f, 0.5f, 0.f,
-
-	-0.8f,	0.f,	-0.5f,			1.f, 0.f, 1.f,
-	0.f,	0.f,	1.f,			1.f, 0.f, 1.f,
-	0.f,	1.5f,	0.f,			1.f, 0.f, 1.f
+	3, 0, -3,		1, 0, 0,	0, 1, 0,
+	-3, 0, 3,		1, 0, 0,	0, 1, 0,
+	3, 0, 3,		1, 0, 0,	0, 1, 0
 };
 
 
@@ -54,17 +46,30 @@ const char* VertexShaderCode =
 R"(
 	#version 330 core
 	
-	in vec3 position;
-	in vec3 color;
-	out vec3 vertexColor;
+	in vec3 Position;
+	in vec3 Color;
+	in vec3 Normal;
+
+	out vec3 VertexColor;
+	out vec3 VertexNormal;
+	out vec3 LightDirection;
+
+
 	uniform mat4 ModelMatrix;
 	uniform mat4 ViewMatrix;
 	uniform mat4 ProjectionMatrix;
 
 	void main()
 	{
-		gl_Position = ProjectionMatrix * ViewMatrix * ModelMatrix * vec4(position, 1.f);
-		vertexColor = color;
+		vec3 LightLocation = vec3(0, 1, 0);
+		vec4 VertexLocation = ModelMatrix * vec4(Position, 1);
+
+
+		gl_Position = ProjectionMatrix * ViewMatrix * ModelMatrix * vec4(Position, 1.f);
+		VertexColor = Color;
+
+		VertexNormal = (ModelMatrix * vec4(Normal, 0)).xyz;
+		LightDirection = LightLocation - VertexLocation.xyz;
 	}
 )";
 #pragma endregion
@@ -73,17 +78,21 @@ R"(
 const char* FragmentShaderCode = 
 R"(
 	#version 330 core
-	out vec4 color;
+	out vec4 Color;
 
-	in vec3 vertexColor;
+	in vec3 VertexColor;
+	in vec3 VertexNormal;
+	in vec3 LightDirection;
 
 	void main()
 	{
-		color = vec4(vertexColor, 1);
+		float LightIntensity = max(dot(normalize(VertexNormal), normalize(LightDirection)), 0);
+		vec3 DiffuseMap = LightIntensity * vec3(1,1,1);
+
+		Color = vec4(DiffuseMap, 1) * vec4(VertexColor, 1);
 	}
 )";
 #pragma endregion
-
 
 int main(int argc, char* argv[])
 {
@@ -157,11 +166,18 @@ int main(int argc, char* argv[])
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
 	//Pass info to shader
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 6, (void*)0);
+	
+	//Vertex Locations
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 9, (void*)0);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 6, (void*)12);
+	
+	//Vertex Colors
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 9, (void*)12);
 	glEnableVertexAttribArray(1);
-
+	
+	//Vertex Normal
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 9, (void*)24);
+	glEnableVertexAttribArray(2);
 #pragma endregion
 	
 	#pragma region Transformations
@@ -232,7 +248,7 @@ int main(int argc, char* argv[])
 
 		#pragma region Render
 		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, 12);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
 
 		SDL_GL_SwapWindow(Window);
 		#pragma endregion
