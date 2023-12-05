@@ -30,9 +30,22 @@ SDL_GLContext WindowContext= nullptr;
 
 float vertices[] = 
 { 
-	-0.5f,	 -.5f,	 0.f,
-	.5f,	 -.5f,	 0.f,
-	0.f,	 .5f,	 0.f 
+	// Vertices						Color
+	-0.8f,	 0.f,	 -0.5f,			1.f, 0.f, 0.f,
+	0.f,	 0.f,	 1.f,			1.f, 0.f, 0.f,
+	0.8f,	 0.f,	 -.5f,			1.f, 0.f, 0.f,
+
+	0.f,	 0.f,	 1.f,			1.f, 1.f, 0.f,
+	0.8f,	 0.f,	 -0.5f,			1.f, 1.f, 0.f,
+	0.f,	 1.5f,	 0.f,			1.f, 1.f, 0.f,
+
+	0.8f,	 0.f,	 -0.5f,			1.f, 0.5f, 0.f,
+	-0.8f,	 0.f,	 -0.5f,			1.f, 0.5f, 0.f,
+	0.f,	 1.5f,	 0.f,			1.f, 0.5f, 0.f,
+
+	-0.8f,	0.f,	-0.5f,			1.f, 0.f, 1.f,
+	0.f,	0.f,	1.f,			1.f, 0.f, 1.f,
+	0.f,	1.5f,	0.f,			1.f, 0.f, 1.f
 };
 
 
@@ -42,14 +55,16 @@ R"(
 	#version 330 core
 	
 	in vec3 position;
-
+	in vec3 color;
+	out vec3 vertexColor;
 	uniform mat4 ModelMatrix;
 	uniform mat4 ViewMatrix;
 	uniform mat4 ProjectionMatrix;
 
 	void main()
 	{
-		gl_Position = ProjectionMatrix * ViewMatrix * ModelMatrix * vec4(position, 1);
+		gl_Position = ProjectionMatrix * ViewMatrix * ModelMatrix * vec4(position, 1.f);
+		vertexColor = color;
 	}
 )";
 #pragma endregion
@@ -59,9 +74,12 @@ const char* FragmentShaderCode =
 R"(
 	#version 330 core
 	out vec4 color;
+
+	in vec3 vertexColor;
+
 	void main()
 	{
-		color = vec4(1, 1, 1, 1);
+		color = vec4(vertexColor, 1);
 	}
 )";
 #pragma endregion
@@ -100,6 +118,8 @@ int main(int argc, char* argv[])
 		SDL_Quit();
 		return 1;
 	}
+
+	glEnable(GL_DEPTH_TEST);
 #pragma endregion
 	
 	#pragma region Shaders
@@ -137,8 +157,10 @@ int main(int argc, char* argv[])
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
 	//Pass info to shader
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3* sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 6, (void*)0);
 	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 6, (void*)12);
+	glEnableVertexAttribArray(1);
 
 #pragma endregion
 	
@@ -148,7 +170,9 @@ int main(int argc, char* argv[])
 
 	mat4 VMatrix = mat4(1.f);
 	//Translate the camera (quote unquote)
-	VMatrix = glm::translate(VMatrix, vec3(CAMERA_LOCATION_X, CAMERA_LOCATION_Y, CAMERA_LOCATION_Z));
+	
+	//VMatrix = glm::translate(VMatrix, vec3(CAMERA_LOCATION_X, CAMERA_LOCATION_Y, CAMERA_LOCATION_Z));
+	VMatrix = glm::lookAt(vec3(0.f, 3.f, -5.f), vec3(0,0,0), vec3(0,1,0));
 
 	mat4 MMatrix = mat4(1.f);
 	#pragma endregion
@@ -208,7 +232,7 @@ int main(int argc, char* argv[])
 
 		#pragma region Render
 		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glDrawArrays(GL_TRIANGLES, 0, 12);
 
 		SDL_GL_SwapWindow(Window);
 		#pragma endregion
