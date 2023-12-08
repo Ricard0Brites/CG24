@@ -6,6 +6,11 @@
 #include <glm.hpp>
 #include <ext.hpp>
 
+#include"OBJ.h"
+
+
+
+
 typedef glm::mat4 mat4;
 typedef glm::vec3 vec3;
 
@@ -23,23 +28,16 @@ SDL_GLContext WindowContext= nullptr;
 
 #pragma region Camera Setup
 #define CAMERA_LOCATION_X 0.f
-#define CAMERA_LOCATION_Y 0.f
-#define CAMERA_LOCATION_Z -5.f
+#define CAMERA_LOCATION_Y -40.f
+#define CAMERA_LOCATION_Z 7.f
+
+#define CAMERA_ROT_X 0.f
+#define CAMERA_ROT_Y 25.f
+#define CAMERA_ROT_Z 0.f
 #pragma endregion
 
-
-float vertices[] = 
-{ 
-	// Vertices		Color		Normal
-	-3, 0, -3,		1, 0, 0,	0,1,0,
-	-3, 0, 3,		1, 0, 0,	0, 1, 0,
-	3, 0, -3,		1, 0, 0,	0, 1, 0,
-
-	3, 0, -3,		1, 0, 0,	0, 1, 0,
-	-3, 0, 3,		1, 0, 0,	0, 1, 0,
-	3, 0, 3,		1, 0, 0,	0, 1, 0
-};
-
+#define DEGTORAD(Deg) (Deg * (glm::pi<float>() / 180))
+#define ROTATEMATRIX(ModelMatrix, DegToRotate, V3Axis) ModelMatrix = glm::rotate(ModelMatrix, DEGTORAD(DegToRotate), V3Axis);
 
 #pragma region Vertex Shader
 const char* VertexShaderCode =
@@ -61,7 +59,7 @@ R"(
 
 	void main()
 	{
-		vec3 LightLocation = vec3(0, 1, 0);
+		vec3 LightLocation = vec3(10, 40, 7);
 		vec4 VertexLocation = ModelMatrix * vec4(Position, 1);
 
 
@@ -86,8 +84,8 @@ R"(
 
 	void main()
 	{
-		float LightIntensity = max(dot(normalize(VertexNormal), normalize(LightDirection)), 0);
-		vec3 DiffuseMap = LightIntensity * vec3(1,1,1);
+		float LightIntensity = max(dot(normalize(VertexNormal), normalize(LightDirection)), 0.01);
+		vec3 DiffuseMap = LightIntensity * vec3(0.5,0.5,0.5);
 
 		Color = vec4(DiffuseMap, 1) * vec4(VertexColor, 1);
 	}
@@ -96,6 +94,14 @@ R"(
 
 int main(int argc, char* argv[])
 {
+	#pragma region Load OBJ
+	OBJ model;
+	if(!model.LoadOBJ("Rabbit_Lowpoly_3.obj"))
+		return 0;
+
+	std::vector<float> vertices = model.GetVertices();
+	#pragma endregion
+
 	#pragma region Init
 	if (SDL_Init(SDL_INIT_VIDEO) != 0)
 		return 1;
@@ -163,7 +169,7 @@ int main(int argc, char* argv[])
 	unsigned int VBO;
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_STATIC_DRAW);
 
 	//Pass info to shader
 	
@@ -187,8 +193,12 @@ int main(int argc, char* argv[])
 	mat4 VMatrix = mat4(1.f);
 	//Translate the camera (quote unquote)
 	
-	//VMatrix = glm::translate(VMatrix, vec3(CAMERA_LOCATION_X, CAMERA_LOCATION_Y, CAMERA_LOCATION_Z));
-	VMatrix = glm::lookAt(vec3(0.f, 3.f, -5.f), vec3(0,0,0), vec3(0,1,0));
+	VMatrix = glm::translate(VMatrix, vec3(CAMERA_LOCATION_X, CAMERA_LOCATION_Z * -1, CAMERA_LOCATION_Y));
+	ROTATEMATRIX(VMatrix, CAMERA_ROT_Y ,vec3(1,0,0));
+	ROTATEMATRIX(VMatrix, CAMERA_ROT_Z ,vec3(0,1,0));
+	ROTATEMATRIX(VMatrix, CAMERA_ROT_X ,vec3(0,0,1));
+
+	//VMatrix = glm::lookAt(vec3(0.f, 20.f, -5.f), vec3(0,0,0), vec3(0,1,0));
 
 	mat4 MMatrix = mat4(1.f);
 	#pragma endregion
@@ -248,7 +258,7 @@ int main(int argc, char* argv[])
 
 		#pragma region Render
 		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glDrawArrays(GL_TRIANGLES, 0, model.GetNumOfVertices());
 
 		SDL_GL_SwapWindow(Window);
 		#pragma endregion

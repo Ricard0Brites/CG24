@@ -18,5 +18,13 @@
     <ClCompile Include="CG24.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="OBJ.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="OBJ.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
