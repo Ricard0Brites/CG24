@@ -191,20 +191,17 @@ int main(int argc, char* argv[])
 	mat4 PMatrix = glm::perspective(glm::radians(50.f), WindowAspectRatio, 0.1f, 100.f);
 
 	mat4 VMatrix = mat4(1.f);
-	//Translate the camera (quote unquote)
 	
 	VMatrix = glm::translate(VMatrix, vec3(CAMERA_LOCATION_X, CAMERA_LOCATION_Z * -1, CAMERA_LOCATION_Y));
 	ROTATEMATRIX(VMatrix, CAMERA_ROT_Y ,vec3(1,0,0));
 	ROTATEMATRIX(VMatrix, CAMERA_ROT_Z ,vec3(0,1,0));
 	ROTATEMATRIX(VMatrix, CAMERA_ROT_X ,vec3(0,0,1));
 
-	//VMatrix = glm::lookAt(vec3(0.f, 20.f, -5.f), vec3(0,0,0), vec3(0,1,0));
-
 	mat4 MMatrix = mat4(1.f);
 	#pragma endregion
 
 	bool IsRunning = true;
-	while(IsRunning)
+	while(IsRunning) // game loop
 	{
 		SDL_Event PollEvent;
 
@@ -227,6 +224,11 @@ int main(int argc, char* argv[])
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		#pragma endregion
 
+		// Input & Game logic
+		
+
+
+		//Rendering
 		glUseProgram(Shader);
 
 		#pragma region Apply Transformations
@@ -244,7 +246,7 @@ int main(int argc, char* argv[])
 		//-------									Communicate to the shader										-------
 		//-----------------------------------------------------------------------------------------------------------------
 		
-		//Get Vertex Shader var locations
+		//Get Vertex Shader var
 		unsigned int ProjectionMatrix, ViewMatrix, ModelMatrix;
 		ProjectionMatrix = glGetUniformLocation(Shader, "ProjectionMatrix");
 		ViewMatrix = glGetUniformLocation(Shader, "ViewMatrix");
