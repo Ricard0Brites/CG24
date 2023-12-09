@@ -7,9 +7,7 @@
 #include <ext.hpp>
 
 #include"OBJ.h"
-
-
-
+#include "Shader.h"
 
 typedef glm::mat4 mat4;
 typedef glm::vec3 vec3;
@@ -23,7 +21,7 @@ typedef glm::vec3 vec3;
 #define WINDOW_FLAGS SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_INPUT_FOCUS
 
 SDL_Window* Window = nullptr;
-SDL_GLContext WindowContext= nullptr;
+SDL_GLContext WindowContext = nullptr;
 #pragma endregion
 
 #pragma region Camera Setup
@@ -39,75 +37,20 @@ SDL_GLContext WindowContext= nullptr;
 #define DEGTORAD(Deg) (Deg * (glm::pi<float>() / 180))
 #define ROTATEMATRIX(ModelMatrix, DegToRotate, V3Axis) ModelMatrix = glm::rotate(ModelMatrix, DEGTORAD(DegToRotate), V3Axis);
 
-#pragma region Vertex Shader
-const char* VertexShaderCode =
-R"(
-	#version 330 core
-	
-	in vec3 Position;
-	in vec3 Color;
-	in vec3 Normal;
-
-	out vec3 VertexColor;
-	out vec3 VertexNormal;
-	out vec3 LightDirection;
-
-
-	uniform mat4 ModelMatrix;
-	uniform mat4 ViewMatrix;
-	uniform mat4 ProjectionMatrix;
-
-	void main()
-	{
-		vec3 LightLocation = vec3(10, 40, 7);
-		vec4 VertexLocation = ModelMatrix * vec4(Position, 1);
-
-
-		gl_Position = ProjectionMatrix * ViewMatrix * ModelMatrix * vec4(Position, 1.f);
-		VertexColor = Color;
-
-		VertexNormal = (ModelMatrix * vec4(Normal, 0)).xyz;
-		LightDirection = LightLocation - VertexLocation.xyz;
-	}
-)";
-#pragma endregion
-
-#pragma region Fragment Shader
-const char* FragmentShaderCode = 
-R"(
-	#version 330 core
-	out vec4 Color;
-
-	in vec3 VertexColor;
-	in vec3 VertexNormal;
-	in vec3 LightDirection;
-
-	void main()
-	{
-		float LightIntensity = max(dot(normalize(VertexNormal), normalize(LightDirection)), 0.01);
-		vec3 DiffuseMap = LightIntensity * vec3(0.5,0.5,0.5);
-
-		Color = vec4(DiffuseMap, 1) * vec4(VertexColor, 1);
-	}
-)";
-#pragma endregion
+#define MOVEMENTSPEED 0.
 
 int main(int argc, char* argv[])
 {
-	#pragma region Load OBJ
+#pragma region Load OBJ
 	OBJ model;
-	if(!model.LoadOBJ("Rabbit_Lowpoly_3.obj"))
+	if (!model.LoadOBJ("Rabbit_Lowpoly_3.obj"))
 		return 0;
-
 	std::vector<float> vertices = model.GetVertices();
-	#pragma endregion
+#pragma endregion
 
-	#pragma region Init
+#pragma region Init
 	if (SDL_Init(SDL_INIT_VIDEO) != 0)
 		return 1;
-
-	//SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	//SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 
 	Window = SDL_CreateWindow(WINDOW_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_RESOLUTION, WINDOW_FLAGS);
 
@@ -136,29 +79,10 @@ int main(int argc, char* argv[])
 
 	glEnable(GL_DEPTH_TEST);
 #pragma endregion
-	
-	#pragma region Shaders
-	unsigned int VertexShader, FragmentShader, Shader;
 
-	//Vertex Shader
-	VertexShader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(VertexShader, 1, &VertexShaderCode, NULL);
-	glCompileShader(VertexShader);
-
-	//Fragment Shader
-	FragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(FragmentShader, 1, &FragmentShaderCode, NULL);
-	glCompileShader(FragmentShader);
-
-	//Create
-	Shader = glCreateProgram();
-	glAttachShader(Shader, VertexShader);
-	glAttachShader(Shader, FragmentShader);
-	glLinkProgram(Shader);
-
-	//Delete shaders
-	glDeleteShader(VertexShader);
-	glDeleteShader(FragmentShader);
+#pragma region Shaders
+	Shader shader;
+	shader.InitShader();
 
 	//Vertex Array (VAO)
 	unsigned int VAO;
@@ -172,40 +96,40 @@ int main(int argc, char* argv[])
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_STATIC_DRAW);
 
 	//Pass info to shader
-	
+
 	//Vertex Locations
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 9, (void*)0);
 	glEnableVertexAttribArray(0);
-	
+
 	//Vertex Colors
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 9, (void*)12);
 	glEnableVertexAttribArray(1);
-	
+
 	//Vertex Normal
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 9, (void*)24);
 	glEnableVertexAttribArray(2);
 #pragma endregion
-	
-	#pragma region Transformations
+
+#pragma region Transformations
 	float WindowAspectRatio = WINDOW_RESOLUTION_X / WINDOW_RESOLUTION_Y;
 	mat4 PMatrix = glm::perspective(glm::radians(50.f), WindowAspectRatio, 0.1f, 100.f);
 
 	mat4 VMatrix = mat4(1.f);
-	
+
 	VMatrix = glm::translate(VMatrix, vec3(CAMERA_LOCATION_X, CAMERA_LOCATION_Z * -1, CAMERA_LOCATION_Y));
-	ROTATEMATRIX(VMatrix, CAMERA_ROT_Y ,vec3(1,0,0));
-	ROTATEMATRIX(VMatrix, CAMERA_ROT_Z ,vec3(0,1,0));
-	ROTATEMATRIX(VMatrix, CAMERA_ROT_X ,vec3(0,0,1));
+	ROTATEMATRIX(VMatrix, CAMERA_ROT_Y, vec3(1, 0, 0));
+	ROTATEMATRIX(VMatrix, CAMERA_ROT_Z, vec3(0, 1, 0));
+	ROTATEMATRIX(VMatrix, CAMERA_ROT_X, vec3(0, 0, 1));
 
 	mat4 MMatrix = mat4(1.f);
-	#pragma endregion
+#pragma endregion
 
 	bool IsRunning = true;
-	while(IsRunning) // game loop
+	while (IsRunning) // game loop
 	{
 		SDL_Event PollEvent;
 
-		while(SDL_PollEvent(&PollEvent))
+		while (SDL_PollEvent(&PollEvent))
 		{
 			#pragma region Stop Execution
 			switch (PollEvent.type)
@@ -217,56 +141,70 @@ int main(int argc, char* argv[])
 				break;
 			}
 #pragma endregion
+			
+			if(PollEvent.type == SDL_MOUSEMOTION)
+			{
+				
+			}
+			else if(PollEvent.key.type == SDL_KEYDOWN)
+			{
+				switch (PollEvent.key.keysym.scancode)
+				{
+					case SDL_SCANCODE_W:
+						MMatrix = glm::translate(MMatrix, vec3(0, 0, -MOVEMENTSPEED));
+						break;
+					case SDL_SCANCODE_S:
+						MMatrix = glm::translate(MMatrix, vec3(0, 0, MOVEMENTSPEED));
+						break;
+					case SDL_SCANCODE_A:
+						MMatrix = glm::translate(MMatrix, vec3(-MOVEMENTSPEED, 0, 0));
+						break;
+					case SDL_SCANCODE_D:
+						MMatrix = glm::translate(MMatrix, vec3(MOVEMENTSPEED, 0, 0));
+						break;
+					case SDL_SCANCODE_E:
+						MMatrix = glm::translate(MMatrix, vec3(0, MOVEMENTSPEED, 0));
+						break;
+					case SDL_SCANCODE_Q:
+						MMatrix = glm::translate(MMatrix, vec3(0, -MOVEMENTSPEED, 0));
+						break;
+				default:
+					break;
+				}
+				MMatrix = glm::translate(MMatrix, vec3(0, 0, 0.025f));
+			}
 		}
-		#pragma region Clear Screen
-		//Clear Screen
-		glClearColor(0.f, 0.f, 0.f, 1);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		#pragma endregion
 
-		// Input & Game logic
-		
-
-
-		//Rendering
-		glUseProgram(Shader);
-
-		#pragma region Apply Transformations
-
+#pragma region Apply Transformations
 		float ModelRotation = 0.f;
-		vec3 ModelRotationAxis = vec3(0.f, 1.f, 0.f);
 
 		//Rotate The Model
 		if (ModelRotation > 360)
 			ModelRotation -= 360;
 		ModelRotation += 0.5f;
-		MMatrix = glm::rotate(MMatrix, glm::radians(ModelRotation), ModelRotationAxis);
+		MMatrix = glm::rotate(MMatrix, glm::radians(ModelRotation), vec3(0.f, 1.f, 0.f));
+#pragma endregion
 
-		//-----------------------------------------------------------------------------------------------------------------
-		//-------									Communicate to the shader										-------
-		//-----------------------------------------------------------------------------------------------------------------
-		
-		//Get Vertex Shader var
-		unsigned int ProjectionMatrix, ViewMatrix, ModelMatrix;
-		ProjectionMatrix = glGetUniformLocation(Shader, "ProjectionMatrix");
-		ViewMatrix = glGetUniformLocation(Shader, "ViewMatrix");
-		ModelMatrix = glGetUniformLocation(Shader, "ModelMatrix");
+#pragma region Clear Screen
+		//Clear Screen
+		glClearColor(0.f, 0.f, 0.f, 1);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+#pragma endregion		
 
-		// Send info to Vertex shader
-		glUniformMatrix4fv(ProjectionMatrix, 1, GL_FALSE, glm::value_ptr(PMatrix));
-		glUniformMatrix4fv(ViewMatrix, 1, GL_FALSE, glm::value_ptr(VMatrix));
-		glUniformMatrix4fv(ModelMatrix, 1, GL_FALSE, glm::value_ptr(MMatrix));
-	#pragma endregion
+		shader.UseShader();
 
-		#pragma region Render
+		shader.SetModelMatrix(MMatrix);
+		shader.SetProjectionMatrix(PMatrix);
+		shader.SetViewMatrix(VMatrix);
+
+#pragma region Render
 		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, model.GetNumOfVertices());
-
 		SDL_GL_SwapWindow(Window);
-		#pragma endregion
+#pragma endregion
 	}
-	
-	#pragma region Destruct
+
+#pragma region Destruct
 	SDL_GL_DeleteContext(WindowContext);
 	SDL_DestroyWindow(Window);
 	SDL_Quit();

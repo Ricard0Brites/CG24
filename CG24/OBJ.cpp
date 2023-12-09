@@ -111,7 +111,7 @@ void OBJ::LoadMtl(const char* MatFile)
 		}
 		if(STRINGSTARTSWITH(currentLine, "newmtl"))
 		{
-			sscanf_s(currentLine.c_str(), "newmtl %s", MatFile, (int)sizeof(MatFile));
+			sscanf_s(currentLine.c_str(), "newmtl %s", const_cast<char*>(MatFile), (int)sizeof(MatFile));
 			_ColorMap[MatFile] = Color();
 		}
 	}
