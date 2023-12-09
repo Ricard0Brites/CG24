@@ -40,6 +40,7 @@ void Shader::InitShader()
 	glCompileShader(_VertexShader);
 
 #if _DEBUG
+{
 	GLint isCompiled = 0;
 	glGetShaderiv(_VertexShader, GL_COMPILE_STATUS, &isCompiled);
 	if (isCompiled == GL_FALSE)
@@ -62,16 +63,43 @@ void Shader::InitShader()
 		cout << debugMsg << endl;
 		return;
 	}
+}
 #endif
 	#pragma endregion
 
-
-
-
+	#pragma region Fragment Shader
 	//Fragment Shader
 	_FragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 	glShaderSource(_FragmentShader, 1, &fsc, 0);
 	glCompileShader(_FragmentShader);
+
+#if _DEBUG
+{
+	GLint isCompiled = 0;
+	glGetShaderiv(_FragmentShader, GL_COMPILE_STATUS, &isCompiled);
+	if (isCompiled == GL_FALSE)
+	{
+		GLint maxLength = 0;
+		glGetShaderiv(_FragmentShader, GL_INFO_LOG_LENGTH, &maxLength);
+
+		// The maxLength includes the NULL character
+		vector<GLchar> infoLog(maxLength);
+		glGetShaderInfoLog(_FragmentShader, maxLength, &maxLength, &infoLog[0]);
+
+		// We don't need the shader anymore.
+		glDeleteShader(_FragmentShader);
+
+		string debugMsg = "Fragment Shader Log:\n";
+		for (GLchar Character : infoLog)
+		{
+			debugMsg += Character;
+		}
+		cout << debugMsg << endl;
+		return;
+	}
+}
+#endif
+	#pragma endregion
 
 	//Create
 	glAttachShader(_Shader, _VertexShader);
