@@ -86,12 +86,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CG24.cpp" />
     <ClCompile Include="delete.cpp" />
     <ClCompile Include="OBJ.cpp" />
     <ClCompile Include="Shader.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Camera.h" />
     <ClInclude Include="OBJ.h" />
     <ClInclude Include="Shader.h" />
   </ItemGroup>

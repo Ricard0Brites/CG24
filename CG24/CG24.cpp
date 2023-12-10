@@ -8,6 +8,7 @@
 
 #include"OBJ.h"
 #include "Shader.h"
+#include "Camera.h"
 
 typedef glm::mat4 mat4;
 typedef glm::vec3 vec3;
@@ -16,6 +17,7 @@ typedef glm::vec3 vec3;
 #define WINDOW_RESOLUTION WINDOW_RESOLUTION_X, WINDOW_RESOLUTION_Y
 #define WINDOW_RESOLUTION_X 1280
 #define WINDOW_RESOLUTION_Y 720
+#define ASPECTRATIO (float)(WINDOW_RESOLUTION_X / WINDOW_RESOLUTION_Y)
 
 #define WINDOW_TITLE "Computer Graphics Ricardo Brites 24"
 #define WINDOW_FLAGS SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_INPUT_FOCUS
@@ -26,18 +28,20 @@ SDL_GLContext WindowContext = nullptr;
 
 #pragma region Camera Setup
 #define CAMERA_LOCATION_X 0.f
-#define CAMERA_LOCATION_Y -40.f
-#define CAMERA_LOCATION_Z 7.f
+#define CAMERA_LOCATION_Y 3.f
+#define CAMERA_LOCATION_Z -5.f
 
 #define CAMERA_ROT_X 0.f
-#define CAMERA_ROT_Y 25.f
+#define CAMERA_ROT_Y 0.f
 #define CAMERA_ROT_Z 0.f
+
+#define SENSITIVITYMULTIPLIER 0.7f
 #pragma endregion
 
 #define DEGTORAD(Deg) (Deg * (glm::pi<float>() / 180))
 #define ROTATEMATRIX(ModelMatrix, DegToRotate, V3Axis) ModelMatrix = glm::rotate(ModelMatrix, DEGTORAD(DegToRotate), V3Axis);
 
-#define MOVEMENTSPEED 0.
+#define MOVEMENTSPEED 0.025f
 
 int main(int argc, char* argv[])
 {
@@ -110,19 +114,24 @@ int main(int argc, char* argv[])
 	glEnableVertexAttribArray(2);
 #pragma endregion
 
+#pragma region Camera
+	
+	Camera camera;
+
+	camera.SetLocation(vec3(CAMERA_LOCATION_X, CAMERA_LOCATION_Y, CAMERA_LOCATION_Z));
+	camera.LookAt(vec3(CAMERA_ROT_X, CAMERA_ROT_Y, CAMERA_ROT_Z));
+
+#pragma endregion
+
 #pragma region Transformations
-	float WindowAspectRatio = WINDOW_RESOLUTION_X / WINDOW_RESOLUTION_Y;
-	mat4 PMatrix = glm::perspective(glm::radians(50.f), WindowAspectRatio, 0.1f, 100.f);
-
-	mat4 VMatrix = mat4(1.f);
-
-	VMatrix = glm::translate(VMatrix, vec3(CAMERA_LOCATION_X, CAMERA_LOCATION_Z * -1, CAMERA_LOCATION_Y));
-	ROTATEMATRIX(VMatrix, CAMERA_ROT_Y, vec3(1, 0, 0));
-	ROTATEMATRIX(VMatrix, CAMERA_ROT_Z, vec3(0, 1, 0));
-	ROTATEMATRIX(VMatrix, CAMERA_ROT_X, vec3(0, 0, 1));
-
+	mat4 PMatrix = glm::perspective(glm::radians(50.f), ASPECTRATIO, 0.1f, 100.f);
 	mat4 MMatrix = mat4(1.f);
 #pragma endregion
+
+#pragma region Input
+	const Uint8* keyStates = SDL_GetKeyboardState(nullptr);
+#pragma endregion
+
 
 	bool IsRunning = true;
 	while (IsRunning) // game loop
@@ -140,64 +149,71 @@ int main(int argc, char* argv[])
 			default:
 				break;
 			}
-#pragma endregion
-			
-			if(PollEvent.type == SDL_MOUSEMOTION)
+			#pragma endregion
+			if(SDL_GetWindowFlags(Window) & (SDL_WINDOW_INPUT_FOCUS))
 			{
-				
-			}
-			else if(PollEvent.key.type == SDL_KEYDOWN)
-			{
-				switch (PollEvent.key.keysym.scancode)
+				if(PollEvent.type == SDL_MOUSEMOTION)
 				{
-					case SDL_SCANCODE_W:
-						MMatrix = glm::translate(MMatrix, vec3(0, 0, -MOVEMENTSPEED));
-						break;
-					case SDL_SCANCODE_S:
-						MMatrix = glm::translate(MMatrix, vec3(0, 0, MOVEMENTSPEED));
-						break;
-					case SDL_SCANCODE_A:
-						MMatrix = glm::translate(MMatrix, vec3(-MOVEMENTSPEED, 0, 0));
-						break;
-					case SDL_SCANCODE_D:
-						MMatrix = glm::translate(MMatrix, vec3(MOVEMENTSPEED, 0, 0));
-						break;
-					case SDL_SCANCODE_E:
-						MMatrix = glm::translate(MMatrix, vec3(0, MOVEMENTSPEED, 0));
-						break;
-					case SDL_SCANCODE_Q:
-						MMatrix = glm::translate(MMatrix, vec3(0, -MOVEMENTSPEED, 0));
-						break;
-				default:
-					break;
+					camera.AddPitch((float)PollEvent.motion.yrel * SENSITIVITYMULTIPLIER);
+					camera.AddYaw((float)PollEvent.motion.xrel * SENSITIVITYMULTIPLIER);
 				}
-				MMatrix = glm::translate(MMatrix, vec3(0, 0, 0.025f));
 			}
 		}
 
-#pragma region Apply Transformations
-		float ModelRotation = 0.f;
+		#pragma region Input Calculations
+		int counter = 0;
+		vec3 movementNormalVector = vec3(0);
 
-		//Rotate The Model
-		if (ModelRotation > 360)
-			ModelRotation -= 360;
-		ModelRotation += 0.5f;
-		MMatrix = glm::rotate(MMatrix, glm::radians(ModelRotation), vec3(0.f, 1.f, 0.f));
-#pragma endregion
+		if(keyStates[SDL_SCANCODE_W])
+		{
+			movementNormalVector += camera.GetForwardVector();
+			counter++;
+		}
+		if(keyStates[SDL_SCANCODE_A])
+		{
+			movementNormalVector -= camera.GetRightVector();
+			counter++;
+		}
+		if(keyStates[SDL_SCANCODE_S])
+		{
+			movementNormalVector -= camera.GetForwardVector();
+			counter++;
+		}
+		if(keyStates[SDL_SCANCODE_D])
+		{
+			movementNormalVector += camera.GetRightVector();
+			counter++;
+		}
+		if(keyStates[SDL_SCANCODE_Q])
+		{
+			movementNormalVector -= camera.GetUpVector();
+			counter++;
+		}
+		if(keyStates[SDL_SCANCODE_E])
+		{
+			movementNormalVector += camera.GetUpVector();
+			counter++;
+		}
+		if(counter > 0)
+		{
+			camera.AddOffset(movementNormalVector / (float)counter, MOVEMENTSPEED);
+			counter = 0;
+		}
+		#pragma endregion
 
-#pragma region Clear Screen
+		#pragma region Clear Screen
 		//Clear Screen
 		glClearColor(0.f, 0.f, 0.f, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-#pragma endregion		
+		#pragma endregion		
 
 		shader.UseShader();
 
 		shader.SetModelMatrix(MMatrix);
 		shader.SetProjectionMatrix(PMatrix);
-		shader.SetViewMatrix(VMatrix);
+		shader.SetViewMatrix(camera.GetViewMatrix());
 
-#pragma region Render
+		#pragma region Render
 		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, model.GetNumOfVertices());
 		SDL_GL_SwapWindow(Window);
