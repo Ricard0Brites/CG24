@@ -20,7 +20,6 @@ public:
 	mat4 GetViewMatrix();
 	mat4 GetRotatioMatrix();
 
-	void LookAt(vec3 Location);
 	void AddOffset(vec3 DirectionVector, float Magnitude);
 	void AddOffset(vec3 Offset);
 	void AddPitch(float Offset);

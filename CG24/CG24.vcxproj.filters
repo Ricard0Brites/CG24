@@ -46,4 +46,7 @@
     <FxCompile Include="FragmentShader.hlsl" />
     <FxCompile Include="VertexShader.hlsl" />
   </ItemGroup>
+  <ItemGroup>
+    <Object Include="Rabbit_Lowpoly_3.obj" />
+  </ItemGroup>
 </Project>

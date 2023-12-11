@@ -50,17 +50,6 @@ mat4 Camera::GetRotatioMatrix()
 	return rotation;
 }
 
-void Camera::LookAt(vec3 Location)
-{
-	vec3 normal = normalize(_Location - Location);
-
-	//Pitch
-	_Rotation.y = degrees(asinf(-normal.y));
-
-	//Yaw
-	_Rotation.z = -degrees(atan2f(-normal.x, -normal.z));
-}
-
 void Camera::AddOffset(vec3 DirectionVector, float Magnitude)
 {
 	_Location += DirectionVector * Magnitude;

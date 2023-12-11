@@ -21,21 +21,18 @@ typedef glm::vec3 vec3;
 
 #define WINDOW_TITLE "Computer Graphics Ricardo Brites 24"
 #define WINDOW_FLAGS SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_INPUT_FOCUS
+#define WINDOWBACKGROUNDCOLOR 0.f, 0.f, 0.f
 
 SDL_Window* Window = nullptr;
 SDL_GLContext WindowContext = nullptr;
 #pragma endregion
 
 #pragma region Camera Setup
-#define CAMERA_LOCATION_X 0.f
-#define CAMERA_LOCATION_Y 3.f
-#define CAMERA_LOCATION_Z -5.f
+#define CAMERA_LOCATION_X 40.f
+#define CAMERA_LOCATION_Y 0.f
+#define CAMERA_LOCATION_Z 0.f
 
-#define CAMERA_ROT_X 0.f
-#define CAMERA_ROT_Y 0.f
-#define CAMERA_ROT_Z 0.f
-
-#define SENSITIVITYMULTIPLIER 0.7f
+#define SENSITIVITYMULTIPLIER 0.1f
 #pragma endregion
 
 #define DEGTORAD(Deg) (Deg * (glm::pi<float>() / 180))
@@ -43,11 +40,14 @@ SDL_GLContext WindowContext = nullptr;
 
 #define MOVEMENTSPEED 0.025f
 
+//#define FILETOOPEN "Rabbit_Lowpoly_3.obj"
+#define FILETOOPEN "1.obj"
+
 int main(int argc, char* argv[])
 {
 #pragma region Load OBJ
 	OBJ model;
-	if (!model.LoadOBJ("Rabbit_Lowpoly_3.obj"))
+	if (!model.LoadOBJ(FILETOOPEN))
 		return 0;
 	std::vector<float> vertices = model.GetVertices();
 #pragma endregion
@@ -115,12 +115,10 @@ int main(int argc, char* argv[])
 #pragma endregion
 
 #pragma region Camera
-	
 	Camera camera;
 
 	camera.SetLocation(vec3(CAMERA_LOCATION_X, CAMERA_LOCATION_Y, CAMERA_LOCATION_Z));
-	camera.LookAt(vec3(CAMERA_ROT_X, CAMERA_ROT_Y, CAMERA_ROT_Z));
-
+	camera.AddYaw(-90);
 #pragma endregion
 
 #pragma region Transformations
@@ -130,35 +128,37 @@ int main(int argc, char* argv[])
 
 #pragma region Input
 	const Uint8* keyStates = SDL_GetKeyboardState(nullptr);
+	SDL_SetRelativeMouseMode(SDL_TRUE);
+
 #pragma endregion
-
-
 	bool IsRunning = true;
 	while (IsRunning) // game loop
 	{
+		#pragma region Events
 		SDL_Event PollEvent;
-
 		while (SDL_PollEvent(&PollEvent))
 		{
-			#pragma region Stop Execution
+#pragma region Stop Execution
 			switch (PollEvent.type)
 			{
 			case SDL_QUIT:
+				SDL_SetRelativeMouseMode(SDL_FALSE);
 				IsRunning = false;
 				break;
 			default:
 				break;
 			}
-			#pragma endregion
-			if(SDL_GetWindowFlags(Window) & (SDL_WINDOW_INPUT_FOCUS))
+#pragma endregion
+			if (SDL_GetWindowFlags(Window) & (SDL_WINDOW_INPUT_FOCUS))
 			{
-				if(PollEvent.type == SDL_MOUSEMOTION)
+				if (PollEvent.type == SDL_MOUSEMOTION)
 				{
 					camera.AddPitch((float)PollEvent.motion.yrel * SENSITIVITYMULTIPLIER);
 					camera.AddYaw((float)PollEvent.motion.xrel * SENSITIVITYMULTIPLIER);
 				}
 			}
 		}
+		#pragma endregion
 
 		#pragma region Input Calculations
 		int counter = 0;
@@ -203,16 +203,20 @@ int main(int argc, char* argv[])
 
 		#pragma region Clear Screen
 		//Clear Screen
-		glClearColor(0.f, 0.f, 0.f, 1);
+		glClearColor(WINDOWBACKGROUNDCOLOR, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		#pragma endregion		
 
 		shader.UseShader();
+		#pragma endregion		
 
+		#pragma region Transformations
 		shader.SetModelMatrix(MMatrix);
 		shader.SetProjectionMatrix(PMatrix);
 		shader.SetViewMatrix(camera.GetViewMatrix());
+#pragma endregion
 
+		SDL_WarpMouseInWindow(Window, WINDOW_RESOLUTION_X / 2, WINDOW_RESOLUTION_Y / 2);
+	
 		#pragma region Render
 		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, model.GetNumOfVertices());
