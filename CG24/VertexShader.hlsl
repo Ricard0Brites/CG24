@@ -14,12 +14,12 @@ uniform mat4 ProjectionMatrix;
 
 void main()
 {
-	vec3 LightLocation = vec3(10, 40, 7);
+	vec3 LightLocation = vec3(10, 25, 7);
 	vec4 VertexLocation = ModelMatrix * vec4(Position, 1);
 
 	gl_Position = ProjectionMatrix * ViewMatrix * ModelMatrix * vec4(Position, 1.f);
 	VertexColor = Color;
 
 	VertexNormal = (ModelMatrix * vec4(Normal, 0)).xyz;
-	LightDirection = LightLocation - VertexLocation.xyz;
+    LightDirection = LightLocation - VertexLocation.xyz;
 }

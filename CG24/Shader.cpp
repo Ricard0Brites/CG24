@@ -101,7 +101,7 @@ void Shader::InitShader()
 #endif
 	#pragma endregion
 
-	//Create
+	//bind VAO to the shader program
 	glAttachShader(_Shader, _VertexShader);
 	glAttachShader(_Shader, _FragmentShader);
 	glLinkProgram(_Shader);

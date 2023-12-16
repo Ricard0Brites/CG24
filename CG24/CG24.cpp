@@ -40,8 +40,7 @@ SDL_GLContext WindowContext = nullptr;
 
 #define MOVEMENTSPEED 0.025f
 
-//#define FILETOOPEN "Rabbit_Lowpoly_3.obj"
-#define FILETOOPEN "1.obj"
+#define FILETOOPEN "Rabbit_Lowpoly_3.obj"
 
 int main(int argc, char* argv[])
 {
@@ -98,8 +97,6 @@ int main(int argc, char* argv[])
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_STATIC_DRAW);
-
-	//Pass info to shader
 
 	//Vertex Locations
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 9, (void*)0);
