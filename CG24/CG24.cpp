@@ -44,90 +44,91 @@ SDL_GLContext WindowContext = nullptr;
 
 int main(int argc, char* argv[])
 {
-#pragma region Load OBJ
-	OBJ model;
-	if (!model.LoadOBJ(FILETOOPEN))
-		return 0;
-	std::vector<float> vertices = model.GetVertices();
-#pragma endregion
+	#pragma region Load OBJ
+		OBJ model;
+		if (!model.LoadOBJ(FILETOOPEN))
+			return 0;
+		std::vector<float> vertices = model.GetVertices();
+	#pragma endregion
 
-#pragma region Init
-	if (SDL_Init(SDL_INIT_VIDEO) != 0)
-		return 1;
+	#pragma region Init Window
+		if (SDL_Init(SDL_INIT_VIDEO) != 0)
+			return 1;
 
-	Window = SDL_CreateWindow(WINDOW_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_RESOLUTION, WINDOW_FLAGS);
+		Window = SDL_CreateWindow(WINDOW_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_RESOLUTION, WINDOW_FLAGS);
 
-	if (!Window)
-	{
-		SDL_Quit();
-		return 1;
-	}
+		if (!Window)
+		{
+			SDL_Quit();
+			return 1;
+		}
 
-	WindowContext = SDL_GL_CreateContext(Window);
+		WindowContext = SDL_GL_CreateContext(Window);
 
-	if (!WindowContext)
-	{
-		SDL_DestroyWindow(Window);
-		SDL_Quit();
-		return 1;
-	}
+		if (!WindowContext)
+		{
+			SDL_DestroyWindow(Window);
+			SDL_Quit();
+			return 1;
+		}
 
-	if (glewInit() != GLEW_OK)
-	{
-		SDL_GL_DeleteContext(WindowContext);
-		SDL_DestroyWindow(Window);
-		SDL_Quit();
-		return 1;
-	}
+		if (glewInit() != GLEW_OK)
+		{
+			SDL_GL_DeleteContext(WindowContext);
+			SDL_DestroyWindow(Window);
+			SDL_Quit();
+			return 1;
+		}
 
-	glEnable(GL_DEPTH_TEST);
-#pragma endregion
+		glEnable(GL_DEPTH_TEST);
+	#pragma endregion
 
-#pragma region Shaders
-	Shader shader;
-	shader.InitShader();
+	#pragma region Shaders
+		Shader shader;
+		shader.InitShader();
 
-	//Vertex Array (VAO)
-	unsigned int VAO;
-	glGenVertexArrays(1, &VAO);
-	glBindVertexArray(VAO);
+		//Vertex Array (VAO)
+		unsigned int VAO;
+		glGenVertexArrays(1, &VAO);
+		glBindVertexArray(VAO);
 
-	//Vertext Buffer
-	unsigned int VBO;
-	glGenBuffers(1, &VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_STATIC_DRAW);
+		//Vertext Buffer
+		unsigned int VBO;
+		glGenBuffers(1, &VBO);
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_STATIC_DRAW);
 
-	//Vertex Locations
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 9, (void*)0);
-	glEnableVertexAttribArray(0);
+		//Vertex Locations
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 9, (void*)0);
+		glEnableVertexAttribArray(0);
 
-	//Vertex Colors
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 9, (void*)12);
-	glEnableVertexAttribArray(1);
+		//Vertex Colors
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 9, (void*)12);
+		glEnableVertexAttribArray(1);
 
-	//Vertex Normal
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 9, (void*)24);
-	glEnableVertexAttribArray(2);
-#pragma endregion
+		//Vertex Normal
+		glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 9, (void*)24);
+		glEnableVertexAttribArray(2);
+	#pragma endregion
 
-#pragma region Camera
-	Camera camera;
+	#pragma region Camera
+		Camera camera;
 
-	camera.SetLocation(vec3(CAMERA_LOCATION_X, CAMERA_LOCATION_Y, CAMERA_LOCATION_Z));
-	camera.AddYaw(-90);
-#pragma endregion
+		camera.SetLocation(vec3(CAMERA_LOCATION_X, CAMERA_LOCATION_Y, CAMERA_LOCATION_Z));
+		camera.AddYaw(-90);
+	#pragma endregion
 
-#pragma region Transformations
-	mat4 PMatrix = glm::perspective(glm::radians(50.f), ASPECTRATIO, 0.1f, 100.f);
-	mat4 MMatrix = mat4(1.f);
-#pragma endregion
+	#pragma region Transformations
+		//these are base values, the updatable values are implemented in the game loop
+		mat4 PMatrix = glm::perspective(glm::radians(50.f), ASPECTRATIO, 0.1f, 100.f);
+		mat4 MMatrix = mat4(1.f);
+	#pragma endregion
 
-#pragma region Input
-	const Uint8* keyStates = SDL_GetKeyboardState(nullptr);
-	SDL_SetRelativeMouseMode(SDL_TRUE);
+	#pragma region Input
+		const Uint8* keyStates = SDL_GetKeyboardState(nullptr);
+		SDL_SetRelativeMouseMode(SDL_TRUE);
 
-#pragma endregion
+	#pragma endregion
 	bool IsRunning = true;
 	while (IsRunning) // game loop
 	{
@@ -135,17 +136,18 @@ int main(int argc, char* argv[])
 		SDL_Event PollEvent;
 		while (SDL_PollEvent(&PollEvent))
 		{
-#pragma region Stop Execution
+			#pragma region Stop Execution
 			switch (PollEvent.type)
-			{
-			case SDL_QUIT:
-				SDL_SetRelativeMouseMode(SDL_FALSE);
-				IsRunning = false;
-				break;
-			default:
-				break;
-			}
-#pragma endregion
+						{
+						case SDL_QUIT:
+							SDL_SetRelativeMouseMode(SDL_FALSE);
+							IsRunning = false;
+							break;
+						default:
+							break;
+						}
+			#pragma endregion
+			#pragma region Mouse Input
 			if (SDL_GetWindowFlags(Window) & (SDL_WINDOW_INPUT_FOCUS))
 			{
 				if (PollEvent.type == SDL_MOUSEMOTION)
@@ -154,10 +156,11 @@ int main(int argc, char* argv[])
 					camera.AddYaw((float)PollEvent.motion.xrel * SENSITIVITYMULTIPLIER);
 				}
 			}
+			#pragma endregion
 		}
 		#pragma endregion
 
-		#pragma region Input Calculations
+		#pragma region Keyboard Input
 		int counter = 0;
 		vec3 movementNormalVector = vec3(0);
 
@@ -206,19 +209,21 @@ int main(int argc, char* argv[])
 		shader.UseShader();
 		#pragma endregion		
 
-		#pragma region Transformations
+		#pragma region Matrix Transformations
 		shader.SetModelMatrix(MMatrix);
 		shader.SetProjectionMatrix(PMatrix);
 		shader.SetViewMatrix(camera.GetViewMatrix());
-#pragma endregion
+		#pragma endregion
 
-		SDL_WarpMouseInWindow(Window, WINDOW_RESOLUTION_X / 2, WINDOW_RESOLUTION_Y / 2);
+		//this just keeps the mouse centered in the window so we dont loose window focus while
+		// moving the camera arround
+		SDL_WarpMouseInWindow(Window, WINDOW_RESOLUTION_X / 2, WINDOW_RESOLUTION_Y / 2); 
 	
 		#pragma region Render
 		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, model.GetNumOfVertices());
 		SDL_GL_SwapWindow(Window);
-#pragma endregion
+		#pragma endregion
 	}
 
 #pragma region Destruct
